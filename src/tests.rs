@@ -783,7 +783,33 @@ fn parser_store_helpers_reject_duplicate_options() {
     let error = parser.store_parse::<u16>(&mut port).unwrap_err();
     assert_eq!(error.kind(), ErrorKind::UnexpectedArgument);
     assert_eq!(error.argument().unwrap().to_string_lossy(), "--port");
+    assert_eq!(
+        parser
+            .next()
+            .unwrap()
+            .and_then(Arg::as_value)
+            .unwrap()
+            .to_str()
+            .unwrap(),
+        "9090"
+    );
     assert_eq!(parser.next().unwrap(), None);
+}
+
+#[test]
+fn parser_store_duplicate_does_not_consume_following_option() {
+    let mut parser = parser(&["--port", "8080", "--port", "--help"]);
+    let mut port = None;
+
+    assert_eq!(parser.next().unwrap(), Some(Arg::Long("port")));
+    parser.store_parse::<u16>(&mut port).unwrap();
+    assert_eq!(parser.next().unwrap(), Some(Arg::Long("port")));
+
+    assert_eq!(
+        parser.store_parse::<u16>(&mut port).unwrap_err().kind(),
+        ErrorKind::UnexpectedArgument
+    );
+    assert_eq!(parser.next().unwrap(), Some(Arg::Long("help")));
 }
 
 #[test]
@@ -1234,6 +1260,16 @@ fn current_value_and_remaining_rejects_options() {
     let error = parser.current_value_and_remaining().unwrap_err();
     assert_eq!(error.kind(), ErrorKind::ValueUnavailable);
     assert_eq!(error.argument().unwrap().to_string_lossy(), "--env");
+}
+
+#[test]
+fn current_value_and_remaining_rejects_exhausted_parser() {
+    let mut parser = parser(&["cargo"]);
+    assert!(matches!(parser.next().unwrap(), Some(Arg::Value(_))));
+    assert_eq!(parser.next().unwrap(), None);
+
+    let error = parser.current_value_and_remaining().unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::ValueUnavailable);
 }
 
 #[cfg(unix)]

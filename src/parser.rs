@@ -173,6 +173,7 @@ where
 
         loop {
             let Some(current) = self.take_next_raw() else {
+                self.current = None;
                 return Ok(None);
             };
 
@@ -408,7 +409,6 @@ where
     /// for the current option.
     pub fn store_os_string(&mut self, slot: &mut Option<OsString>) -> Result<(), Error> {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -421,7 +421,6 @@ where
     /// This is useful for single-occurrence options such as `--root DIR`.
     pub fn store_path_buf(&mut self, slot: &mut Option<PathBuf>) -> Result<(), Error> {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -434,7 +433,6 @@ where
     /// This is useful for single-occurrence options such as `--bind ADDR`.
     pub fn store_string(&mut self, slot: &mut Option<String>) -> Result<(), Error> {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -450,7 +448,6 @@ where
         T: FromStr,
     {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -468,7 +465,6 @@ where
         slot: &mut Option<(String, String)>,
     ) -> Result<(), Error> {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -490,7 +486,6 @@ where
         T: FromStr,
     {
         if slot.is_some() {
-            self.discard_current_value();
             return Err(self.unexpected_current_argument());
         }
 
@@ -1166,23 +1161,6 @@ where
             || Error::without_argument(ErrorKind::UnexpectedArgument),
             |argument| Error::unexpected_argument(argument.to_os_string()),
         )
-    }
-
-    fn discard_current_value(&mut self) {
-        match self.value_source.clone() {
-            ValueSource::Attached(_) => {
-                self.value_source = ValueSource::Consumed;
-            }
-            ValueSource::ShortTail(_) => {
-                self.pending_shorts = None;
-                self.value_source = ValueSource::Consumed;
-            }
-            ValueSource::NextArgument => {
-                let _ = self.take_next_raw();
-                self.value_source = ValueSource::Consumed;
-            }
-            ValueSource::None | ValueSource::Consumed => {}
-        }
     }
 
     fn take_next_raw(&mut self) -> Option<OsString> {

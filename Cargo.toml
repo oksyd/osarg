@@ -2,7 +2,7 @@
 name = "osarg"
 version = "0.1.2"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.98.1"
 description = "A tiny, zero-dependency, borrow-first CLI parser for Rust binaries."
 license = "Apache-2.0"
 readme = "README.md"
